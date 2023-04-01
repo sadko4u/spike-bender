@@ -27,6 +27,8 @@
 
 namespace spike_bender
 {
+    static constexpr float PRECISION = 2.5e-8f;
+
     typedef struct duration_t
     {
         size_t h;
@@ -74,7 +76,7 @@ namespace spike_bender
         calc_duration(&d, &temp);
         fprintf(stdout, "  loaded file: '%s', channels: %d, samples: %d, sample rate: %d, duration: %02d:%02d:%02d.%03d\n",
             name->get_native(),
-            int(sample->channels()), int(sample->length()), int(sample->sample_rate()),
+            int(temp.channels()), int(temp.length()), int(temp.sample_rate()),
             int(d.h), int(d.m), int(d.s), int(d.ms));
 
         // Resample audio data
@@ -207,6 +209,118 @@ namespace spike_bender
                 rms    += sbuf[j] * sbuf[j];
                 dbuf[j]     = sqrtf(lsp_max(rms, 0.0f) * kperiod);
             }
+        }
+
+        // Return the value
+        out.set_sample_rate(src->sample_rate());
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
+    status_t calc_deviation(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *rms, ssize_t offset)
+    {
+        status_t res;
+        dspu::Sample out;
+
+        if (rms->channels() != src->channels())
+        {
+            fprintf(stderr, "  input samples do not match by number of channels\n");
+            return STATUS_BAD_ARGUMENTS;
+        }
+
+        if ((res = out.copy(src)) != STATUS_OK)
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        for (size_t i=0, n=out.channels(); i<n; ++i)
+        {
+            // Compute absolute maximum
+            float *dbuf         = out.channel(i);
+            const float *sbuf   = rms->channel(i);
+            dsp::abs1(dbuf, out.length());
+
+            // Compute the rectified difference between the peak value and RMS
+            ssize_t head        = lsp_max(offset, 0);
+            ssize_t tail        = lsp_min(rms->length() + offset, out.length());
+            for (ssize_t i=head; i<tail; ++i)
+                dbuf[i]     = lsp_max(dbuf[i] - sbuf[i - offset], 0.0f);
+        }
+
+        // Return the value
+        out.set_sample_rate(src->sample_rate());
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
+    status_t calc_gain_adjust(dspu::Sample *dst, const dspu::Sample *ref, const dspu::Sample *src)
+    {
+        dspu::Sample out;
+
+        if (ref->channels() != src->channels())
+        {
+            fprintf(stderr, "  input samples do not match by number of channels\n");
+            return STATUS_BAD_ARGUMENTS;
+        }
+
+        size_t count = lsp_min(ref->length(), src->length());
+        if (!out.init(src->channels(), count, count))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        // Compute the gain relation between source sample and reference one
+        for (size_t i=0; i<src->channels(); ++i)
+        {
+            float *dst = out.channel(i);
+            const float *vref = ref->channel(i);
+            const float *vsrc = src->channel(i);
+
+            for (size_t i=0; i<count; ++i)
+            {
+                float aref  = fabs(vref[i]);
+                float asrc  = fabs(vsrc[i]);
+
+                dst[i]      = (asrc <= PRECISION) ? 1.0f : aref / asrc;
+            }
+        }
+
+        // Return the value
+        out.set_sample_rate(src->sample_rate());
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
+    status_t apply_gain(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *gain)
+    {
+        dspu::Sample out;
+
+        if (src->channels() != gain->channels())
+        {
+            fprintf(stderr, "  input samples do not match by number of channels\n");
+            return STATUS_BAD_ARGUMENTS;
+        }
+
+        size_t count = lsp_min(gain->length(), src->length());
+        if (!out.init(src->channels(), count, count))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        // Compute the gain relation between source sample and reference one
+        for (size_t i=0; i<src->channels(); ++i)
+        {
+            float *dst          = out.channel(i);
+            const float *vsrc   = src->channel(i);
+            const float *vgain  = gain->channel(i);
+
+            dsp::mul3(dst, vsrc, vgain, count);
         }
 
         // Return the value

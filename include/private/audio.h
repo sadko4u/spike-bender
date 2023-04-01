@@ -61,6 +61,7 @@ namespace spike_bender
      */
     status_t save_audio_file(const dspu::Sample *sample, const LSPString *name);
 
+
     /**
      * Estimate the RMS of the input sample and store to another sample
      * @param dst destination sample to store data, is larger by period number of samples
@@ -70,6 +71,27 @@ namespace spike_bender
      * @return status of operation
      */
     status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
+
+    /**
+     * Compute the deviation above the RMS value for the sample
+     * @param dst destination sample to store the value
+     * @param src the original sample
+     * @param rms the RMS of the original sample
+     * @param offset the offset of the sample relative to the RMS value
+     * @return status of operation
+     */
+    status_t calc_deviation(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *rms, ssize_t offset);
+
+    /**
+     * Compute gain adjustment
+     * @param dst destination sample to store result
+     * @param ref reference gain
+     * @param src source gain
+     * @return status of operation
+     */
+    status_t calc_gain_adjust(dspu::Sample *dst, const dspu::Sample *ref, const dspu::Sample *src);
+
+    status_t apply_gain(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *gain);
 
 } /* namespace spike_bender */
 

@@ -51,24 +51,72 @@ MTEST_BEGIN("spike_bender", rms)
 
     MTEST_MAIN
     {
-        lsp::dspu::Sample ins, outs;
-        io::Path in, out;
+        lsp::dspu::Sample ins, outs, devs;
+        io::Path in, out, dev;
 
         // Load the source audio file
         MTEST_ASSERT(in.fmt("%s/samples/in/test.wav", resources()) > 0);
         MTEST_ASSERT(spike_bender::load_audio_file(&ins, in.as_string(), SAMPLE_RATE) == STATUS_OK);
 
-        size_t period = dspu::millis_to_samples(SAMPLE_RATE, 400.0f);
-
         for (size_t i=0, n=sizeof(weight_items)/sizeof(weight_items[0]); i<n; ++i)
         {
             const weight_t *w = &weight_items[i];
 
-            // Estimate the RMS and store to output file
+            // STEP 1
+            // Estimate the long-time RMS and store to output files
+            ssize_t period = ssize_t(dspu::millis_to_samples(SAMPLE_RATE, 400.0f)) | 1;
             MTEST_ASSERT(spike_bender::estimate_rms(&outs, &ins, w->type, period) == STATUS_OK);
+            MTEST_ASSERT(spike_bender::calc_deviation(&devs, &ins, &outs, -period / 2) == STATUS_OK);
 
-            MTEST_ASSERT(out.fmt("%s/samples/out/test-%s.wav", resources(), w->name) > 0);
+            // Save the RMS file
+            MTEST_ASSERT(out.fmt("%s/samples/rms/00-test-%s.wav", resources(), w->name) > 0);
             MTEST_ASSERT(spike_bender::save_audio_file(&outs, out.as_string()) == STATUS_OK);
+
+            // Save the deviation file
+            MTEST_ASSERT(dev.fmt("%s/samples/rms/01-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&devs, dev.as_string()) == STATUS_OK);
+
+            // Commit the changes to the input sample
+            devs.set_length(ins.length());
+
+            // STEP 2 estimate the middle-time RMS and store to output files
+            period = ssize_t(dspu::millis_to_samples(SAMPLE_RATE, 20.0f)) | 1;
+            MTEST_ASSERT(spike_bender::estimate_rms(&outs, &devs, w->type, period) == STATUS_OK);
+            MTEST_ASSERT(spike_bender::calc_deviation(&devs, &devs, &outs, -period / 2) == STATUS_OK);
+
+            // Save the RMS file
+            MTEST_ASSERT(out.fmt("%s/samples/rms/02-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&outs, out.as_string()) == STATUS_OK);
+
+            // Save the deviation file
+            MTEST_ASSERT(dev.fmt("%s/samples/rms/03-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&devs, dev.as_string()) == STATUS_OK);
+
+            // STEP 3 estimate the short-time RMS and store to output files
+            period = ssize_t(dspu::millis_to_samples(SAMPLE_RATE, 2.0f)) | 1;
+            MTEST_ASSERT(spike_bender::estimate_rms(&outs, &devs, w->type, period) == STATUS_OK);
+            MTEST_ASSERT(spike_bender::calc_deviation(&devs, &devs, &outs, -period / 2) == STATUS_OK);
+
+            // Save the RMS file
+            MTEST_ASSERT(out.fmt("%s/samples/rms/04-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&outs, out.as_string()) == STATUS_OK);
+
+            // Save the deviation file
+            MTEST_ASSERT(dev.fmt("%s/samples/rms/05-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&devs, dev.as_string()) == STATUS_OK);
+
+            // STEP 3 estimate the instant-time RMS and store to output files
+            period = 9;
+            MTEST_ASSERT(spike_bender::estimate_rms(&outs, &devs, w->type, period) == STATUS_OK);
+            MTEST_ASSERT(spike_bender::calc_deviation(&devs, &devs, &outs, -period / 2) == STATUS_OK);
+
+            // Save the RMS file
+            MTEST_ASSERT(out.fmt("%s/samples/rms/06-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&outs, out.as_string()) == STATUS_OK);
+
+            // Save the deviation file
+            MTEST_ASSERT(dev.fmt("%s/samples/rms/07-test-%s.wav", resources(), w->name) > 0);
+            MTEST_ASSERT(spike_bender::save_audio_file(&devs, dev.as_string()) == STATUS_OK);
         }
     }
 
