@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/dsp-units/sampling/Sample.h>
+#include <lsp-plug.in/lltl/darray.h>
 
 namespace spike_bender
 {
@@ -41,6 +42,14 @@ namespace spike_bender
         D_WEIGHT,   /**< D-Weightening filter applied */
         K_WEIGHT    /**< K-Weightening filter applied */
     };
+
+    typedef struct range_t
+    {
+        size_t first;   // The first sample in range
+        size_t last;    // The first sample after the range
+        size_t peak;    // The peak index
+        float  gain;    // The peak value
+    } range_t;
 
     /**
      * Load audio file and perform resampling
@@ -61,6 +70,16 @@ namespace spike_bender
      */
     status_t save_audio_file(const dspu::Sample *sample, const LSPString *name);
 
+
+    /**
+     * Estimate the RMS of the input sample and store to another sample
+     * @param dst destination sample to store data, is larger by period number of samples
+     * @param src source sample to read data
+     * @param weight weightening function
+     * @param period the RMS estimation frame size in samples
+     * @return status of operation
+     */
+    status_t apply_weight(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight);
 
     /**
      * Estimate the RMS of the input sample and store to another sample
@@ -93,6 +112,10 @@ namespace spike_bender
 
     status_t apply_gain(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *gain);
 
+
+    status_t find_peaks(lltl::darray<range_t> *ranges, const float *buf, float threshold, size_t count);
+
+    status_t apply_gain(float *buf, lltl::darray<range_t> *ranges, float threshold);
 } /* namespace spike_bender */
 
 

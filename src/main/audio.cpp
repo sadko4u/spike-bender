@@ -19,6 +19,7 @@
  * along with spike-bender. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/dsp-units/filters/Filter.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/stdio.h>
@@ -122,6 +123,73 @@ namespace spike_bender
             name->get_native(),
             int(sample->channels()), int(sample->length()), int(sample->sample_rate()),
             int(d.h), int(d.m), int(d.s), int(d.ms));
+
+        return STATUS_OK;
+    }
+
+    status_t apply_weight(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight)
+    {
+        status_t res;
+        dspu::Filter f;
+
+        // Initialize weighting filter
+        if (!f.init(NULL))
+        {
+            fprintf(stderr, "  error initializing filter\n");
+            return STATUS_NO_MEM;
+        }
+
+        dspu::filter_params_t fp;
+        switch (weight)
+        {
+            case A_WEIGHT:
+                fp.nType        = dspu::FLT_A_WEIGHTED;
+                break;
+            case B_WEIGHT:
+                fp.nType        = dspu::FLT_B_WEIGHTED;
+                break;
+            case C_WEIGHT:
+                fp.nType        = dspu::FLT_C_WEIGHTED;
+                break;
+            case D_WEIGHT:
+                fp.nType        = dspu::FLT_D_WEIGHTED;
+                break;
+            case K_WEIGHT:
+                fp.nType        = dspu::FLT_K_WEIGHTED;
+                break;
+            default:
+                fp.nType        = dspu::FLT_NONE;
+                break;
+        }
+
+        fp.fFreq        = 1.0f;
+        fp.fFreq2       = 1.0f;
+        fp.fGain        = 1.0f;
+        fp.fQuality     = 0.0f;
+        fp.nSlope       = 1.0f;
+
+        f.update(src->sample_rate(), &fp);
+
+        // Process input data with the weighting filter and compute RMS
+        dspu::Sample out;
+        if ((res = out.copy(src)) != STATUS_OK)
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        for (size_t i=0, n=out.channels(); i<n; ++i)
+        {
+            float *dbuf = out.channel(i);
+
+            // Apply filter to the input buffer
+            f.clear();
+            f.process(dbuf, dbuf, out.length());
+        }
+
+        // Return the value
+        out.set_sample_rate(src->sample_rate());
+        out.swap(dst);
 
         return STATUS_OK;
     }
@@ -326,6 +394,126 @@ namespace spike_bender
         // Return the value
         out.set_sample_rate(src->sample_rate());
         out.swap(dst);
+
+        return STATUS_OK;
+    }
+
+    status_t find_peaks(lltl::darray<range_t> *ranges, const float *buf, float threshold, size_t count)
+    {
+        lltl::darray<range_t> out;
+        range_t *curr       = NULL;
+        float s_prev        = 0.0f;     // Previous sample
+        float d_prev        = 0.0f;     // Previous derivative
+        ssize_t num_flips   = 0;        // Number of flips for current region
+        ssize_t last_flip   = -1;       // Last sign flip
+
+        if ((curr = out.add()) == NULL)
+            return STATUS_NO_MEM;
+        curr->first     = 0;
+        curr->last      = curr->first;
+        curr->peak      = curr->first;
+        curr->gain      = 0.0f;
+
+        for (size_t i=0; i<count; ++i)
+        {
+            float s     = buf[i];
+            float d     = buf[i] - s_prev;
+
+            // If the sign of the derivative has changed, then we have local minimum or maximum
+            if (((d_prev < 0.0f) && (d >= 0.0f)) ||
+                ((d_prev > 0.0f) && (d <= 0.0f)))
+            {
+                float gain  = fabsf(buf[i-1]);
+//                lsp_trace("peak %.6f at %d", gain, int(i));
+                if (curr->gain < gain)
+                {
+                    curr->gain      = gain;
+                    curr->peak      = i-1;
+                }
+            }
+
+            // If the sign of the sample has changed, then we reached potential end of region
+            if (((s_prev < 0.0f) && (s >= 0.0f)) ||
+                ((s_prev > 0.0f) && (s <= 0.0f)))
+            {
+                // Increment number of flips
+                ++num_flips;
+
+                // Trigger region cut only if the peak is greater than the threshold
+                if (curr->gain >= threshold)
+                {
+                    if (num_flips > 1)
+                    {
+                        // There was data before the last peak, need to cut two regions
+                        float gain      = curr->gain;
+                        size_t peak     = curr->peak;
+
+                        curr->last      = last_flip;
+                        curr->peak      = curr->first + dsp::abs_max_index(&buf[curr->first], curr->last - curr->first);
+                        curr->gain      = fabs(buf[curr->peak]);
+
+                        if ((curr = out.add()) == NULL)
+                            return STATUS_NO_MEM;
+
+                        curr->first     = last_flip;
+                        curr->last      = curr->first;
+                        curr->peak      = peak;
+                        curr->gain      = gain;
+                    }
+
+                    // This is the first flip in the range with the peak after the threshold
+                    curr->last      = i;
+
+                    // Add new range
+                    if ((curr = out.add()) == NULL)
+                        return STATUS_NO_MEM;
+
+                    curr->first     = last_flip;
+                    curr->last      = curr->first;
+                    curr->peak      = curr->first;
+                    curr->gain      = 0.0f;
+
+                    // Reset number of flips
+                    num_flips       = 0;
+                }
+
+                // Update index of the last flip
+                last_flip   = i;
+            }
+
+            // Update previous sample and derivative
+            s_prev      = s;
+            d_prev      = d;
+        }
+
+        // Determine what to do with the last region
+        if (curr->first >= count)
+            out.pop();
+        else
+            curr->last      = count;
+
+        // Return result
+        out.swap(ranges);
+
+        return STATUS_OK;
+    }
+
+    status_t apply_gain(float *buf, lltl::darray<range_t> *ranges, float threshold)
+    {
+        for (size_t i=0, n=ranges->size(); i<n; ++i)
+        {
+            range_t *r  = ranges->uget(i);
+            if (r->gain < threshold)
+                continue;
+
+//            lsp_trace("-----");
+//            for (size_t i=r->first; i<r->last; ++i)
+//                lsp_trace("buf[%d] = %.6f", int(i), buf[i]);
+
+            float gain  = dsp::abs_max(&buf[r->first], r->last - r->first);
+
+            dsp::mul_k2(&buf[r->first], 1.0f / gain, r->last - r->first);
+        }
 
         return STATUS_OK;
     }
