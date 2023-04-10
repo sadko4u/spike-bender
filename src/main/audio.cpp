@@ -21,6 +21,8 @@
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/dsp-units/filters/Filter.h>
+#include <lsp-plug.in/dsp-units/dynamics/DynamicProcessor.h>
+#include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
@@ -286,6 +288,98 @@ namespace spike_bender
         return STATUS_OK;
     }
 
+    status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period)
+    {
+        dspu::Filter f;
+
+        // Initialize weighting filter
+        if (!f.init(NULL))
+        {
+            fprintf(stderr, "  error initializing filter\n");
+            return STATUS_NO_MEM;
+        }
+
+        dspu::filter_params_t fp;
+        switch (weight)
+        {
+            case A_WEIGHT:
+                fp.nType        = dspu::FLT_A_WEIGHTED;
+                break;
+            case B_WEIGHT:
+                fp.nType        = dspu::FLT_B_WEIGHTED;
+                break;
+            case C_WEIGHT:
+                fp.nType        = dspu::FLT_C_WEIGHTED;
+                break;
+            case D_WEIGHT:
+                fp.nType        = dspu::FLT_D_WEIGHTED;
+                break;
+            case K_WEIGHT:
+                fp.nType        = dspu::FLT_K_WEIGHTED;
+                break;
+            default:
+                fp.nType        = dspu::FLT_NONE;
+                break;
+        }
+
+        fp.fFreq        = 1.0f;
+        fp.fFreq2       = 1.0f;
+        fp.fGain        = 1.0f;
+        fp.fQuality     = 0.0f;
+        fp.nSlope       = 1.0f;
+
+        f.update(src->sample_rate(), &fp);
+
+        // Process input data with the weighting filter and compute RMS
+        dspu::Sample tmp, out;
+        size_t slength  = src->length();
+        size_t dlength  = slength + period;
+        if (!tmp.init(src->channels(), dlength, dlength))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+        if (!out.init(src->channels(), dlength, dlength))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        float kperiod = 1.0f / period;
+
+        for (size_t i=0, n=src->channels(); i<n; ++i)
+        {
+            const float *sbuf = src->channel(i);
+            float *dbuf = tmp.channel(i);
+
+            // Apply filter to the input buffer
+            f.clear();
+            f.process(dbuf, sbuf, slength);
+            dsp::fill_zero(&dbuf[slength], period);
+            f.process(&dbuf[slength], &dbuf[slength], period);
+
+            // Compute the RMS value among the buffer
+            float avg   = 0.0f;
+            sbuf        = dbuf;
+            dbuf        = out.channel(i);
+            for (size_t j=0; j<dlength; ++j)
+            {
+                // Subtract the old value
+                ssize_t off = j - period;
+                if (off >= 0)
+                    avg    -= sbuf[off];
+                avg        += sbuf[j];
+                dbuf[j]     = avg * kperiod;
+            }
+        }
+
+        // Return the value
+        out.set_sample_rate(src->sample_rate());
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
     status_t calc_deviation(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *rms, ssize_t offset)
     {
         status_t res;
@@ -398,7 +492,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t find_peaks(lltl::darray<range_t> *ranges, const float *buf, float threshold, size_t count)
+    status_t find_peaks(lltl::darray<range_t> *ranges, const float *buf, const float *rms, float threshold, size_t count)
     {
         lltl::darray<range_t> out;
         range_t *curr       = NULL;
@@ -439,8 +533,10 @@ namespace spike_bender
                 // Increment number of flips
                 ++num_flips;
 
+                float thresh    = lsp_max(rms[curr->peak] * M_SQRT1_2, threshold);
+
                 // Trigger region cut only if the peak is greater than the threshold
-                if (curr->gain >= threshold)
+                if (curr->gain >= thresh)
                 {
                     if (num_flips > 1)
                     {
@@ -514,6 +610,105 @@ namespace spike_bender
 
             dsp::mul_k2(&buf[r->first], 1.0f / gain, r->last - r->first);
         }
+
+        return STATUS_OK;
+    }
+
+    status_t adjust_gain(
+        dspu::Sample *dst,
+        dspu::Sample *gain,
+        const dspu::Sample *src,
+        const dspu::Sample *env,
+        const float *thresh,
+        float range_db,
+        float knee_db)
+    {
+        dspu::Sample out, g;
+        dspu::DynamicProcessor dp;
+
+        // Check arguments
+        if (src->channels() != env->channels())
+        {
+            fprintf(stderr, "  input samples do not match by number of channels\n");
+            return STATUS_BAD_ARGUMENTS;
+        }
+
+        // Initialize the output samples
+        size_t count = lsp_min(env->length(), src->length());
+        if (!out.init(src->channels(), count, count))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+        if (!g.init(src->channels(), count, count))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        // Process each channel
+        for (size_t i=0; i<src->channels(); ++i)
+        {
+            // Configure the dynamic processor
+            dp.construct();
+            lsp_finally { dp.destroy(); };
+            dp.set_sample_rate(src->sample_rate());
+
+            dspu::dyndot_t dot;
+            dot.fOutput = thresh[i];
+            dot.fKnee   = dspu::db_to_gain(-fabs(knee_db));
+
+            dot.fInput  = thresh[i] * dspu::db_to_gain(range_db - 3.0f);
+            dp.set_dot(0, &dot);
+
+            lsp_trace("dot[0] x=%f, y=%f", dspu::gain_to_db(dot.fInput), dspu::gain_to_db(dot.fOutput));
+
+            dot.fInput  = thresh[i] * dspu::db_to_gain(-range_db - 3.0f);
+            dp.set_dot(1, &dot);
+
+            lsp_trace("dot[1] x=%f, y=%f", dspu::gain_to_db(dot.fInput), dspu::gain_to_db(dot.fOutput));
+
+            dot.fInput  = -1.0f;
+            dp.set_dot(2, &dot);
+            dp.set_dot(3, &dot);
+
+            dp.set_attack_time(0, 0.0f);
+            dp.set_attack_level(0, thresh[i] * dspu::db_to_gain(-6.0f));
+
+            lsp_trace("attack[0] = %f", dspu::gain_to_db(dp.get_attack_level(0)));
+            dp.set_attack_time(1, 5.0f);
+            dp.set_attack_level(1, -1.0f);
+            dp.set_attack_level(2, -1.0f);
+            dp.set_attack_level(3, -1.0f);
+
+            dp.set_release_time(0, 5.0f);
+            dp.set_release_level(0, thresh[i] * dspu::db_to_gain(-6.0f));
+            lsp_trace("release[0] = %f", dspu::gain_to_db(dp.get_release_level(0)));
+            dp.set_release_time(1, 2.0f);
+            dp.set_release_level(1, -1.0f);
+            dp.set_release_level(2, -1.0f);
+            dp.set_release_level(3, -1.0f);
+
+            dp.set_in_ratio(1.0f);
+            dp.set_out_ratio(1.0f);
+
+            dp.update_settings();
+
+            // Perform the processing
+            const float *vsrc   = src->channel(i);
+            const float *venv   = env->channel(i);
+            float *vgain        = g.channel(i);
+            float *vdst         = out.channel(i);
+
+            dp.process(vgain, NULL, venv, count);
+            dsp::mul3(vdst, vgain, vsrc, count);
+        }
+
+        // Return result
+        out.set_sample_rate(src->sample_rate());
+        g.set_sample_rate(src->sample_rate());
+        out.swap(dst);
+        g.swap(gain);
 
         return STATUS_OK;
     }

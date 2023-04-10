@@ -90,6 +90,7 @@ namespace spike_bender
      * @return status of operation
      */
     status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
+    status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
 
     /**
      * Compute the deviation above the RMS value for the sample
@@ -113,9 +114,18 @@ namespace spike_bender
     status_t apply_gain(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *gain);
 
 
-    status_t find_peaks(lltl::darray<range_t> *ranges, const float *buf, float threshold, size_t count);
+    status_t find_peaks(lltl::darray<range_t> *ranges, const float *buf, const float *rms, float threshold, size_t count);
 
     status_t apply_gain(float *buf, lltl::darray<range_t> *ranges, float threshold);
+
+    status_t adjust_gain(
+        dspu::Sample *dst,
+        dspu::Sample *gain,
+        const dspu::Sample *src,
+        const dspu::Sample *env,
+        const float *thresh,
+        float range_db,
+        float knee_db);
 } /* namespace spike_bender */
 
 
