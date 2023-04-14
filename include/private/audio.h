@@ -91,6 +91,9 @@ namespace spike_bender
      */
     status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
     status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
+    status_t estimate_partial_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period, bool positive);
+    status_t estimate_rms_balance(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
+    status_t apply_rms_balance(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *rms);
 
     /**
      * Compute the deviation above the RMS value for the sample
