@@ -45,7 +45,7 @@ MTEST_BEGIN("spike_bender", vcontrol)
         //----------------------------------------------------------------------------
         // ROUND 0
         // STEP 0: Load the source audio file
-        MTEST_ASSERT(path.fmt("%s/samples/in/test2.wav", resources()) > 0);
+        MTEST_ASSERT(path.fmt("%s/samples/in/test3.wav", resources()) > 0);
         MTEST_ASSERT(load_audio_file(&in, path.as_string(), SAMPLE_RATE) == STATUS_OK);
 
         MTEST_ASSERT(path.fmt("%s/samples/vcontrol/%02d-source.wav", resources(), file_id++) > 0);

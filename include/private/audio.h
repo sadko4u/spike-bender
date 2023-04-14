@@ -129,6 +129,8 @@ namespace spike_bender
         const float *thresh,
         float range_db,
         float knee_db);
+
+    status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
 } /* namespace spike_bender */
 
 

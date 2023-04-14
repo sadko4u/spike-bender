@@ -402,6 +402,135 @@ namespace spike_bender
         return STATUS_OK;
     }
 
+    void approximate_envelope(float *dst, const float *src, size_t count)
+    {
+        size_t ppeak    = 0;
+
+        // Perform the smoothing
+        for (size_t i=0; i<count; ++i)
+        {
+            float s     = src[i];
+            if ((s == 0.0f) || (i <= ppeak))
+                continue;
+
+            dsp::smooth_cubic_linear(&dst[ppeak], src[ppeak], s, i - ppeak);
+            ppeak       = i;
+        }
+
+        // Do the last smooth
+        if (ppeak < count)
+            dsp::smooth_cubic_linear(&dst[ppeak], src[ppeak], src[count - 1], count - ppeak - 1);
+    }
+
+    status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period)
+    {
+        dspu::Filter f;
+
+        // Initialize weighting filter
+        if (!f.init(NULL))
+        {
+            fprintf(stderr, "  error initializing filter\n");
+            return STATUS_NO_MEM;
+        }
+
+        dspu::filter_params_t fp;
+        switch (weight)
+        {
+            case A_WEIGHT:
+                fp.nType        = dspu::FLT_A_WEIGHTED;
+                break;
+            case B_WEIGHT:
+                fp.nType        = dspu::FLT_B_WEIGHTED;
+                break;
+            case C_WEIGHT:
+                fp.nType        = dspu::FLT_C_WEIGHTED;
+                break;
+            case D_WEIGHT:
+                fp.nType        = dspu::FLT_D_WEIGHTED;
+                break;
+            case K_WEIGHT:
+                fp.nType        = dspu::FLT_K_WEIGHTED;
+                break;
+            default:
+                fp.nType        = dspu::FLT_NONE;
+                break;
+        }
+
+        fp.fFreq        = 1.0f;
+        fp.fFreq2       = 1.0f;
+        fp.fGain        = 1.0f;
+        fp.fQuality     = 0.0f;
+        fp.nSlope       = 1.0f;
+
+        f.update(src->sample_rate(), &fp);
+
+        // Process input data with the weighting filter and compute RMS
+        dspu::Sample tmp, out;
+        size_t slength = src->length();
+        size_t dlength = slength + (period - slength % period) % period;
+        if (!tmp.init(src->channels(), dlength, dlength))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+        if (!out.init(src->channels() * 6, dlength, dlength))
+        {
+            fprintf(stderr, "  not enough memory\n");
+            return STATUS_NO_MEM;
+        }
+
+        size_t channel_id=0;
+
+        for (size_t i=0, n=src->channels(); i<n; ++i)
+        {
+            const float *sbuf   = src->channel(i);
+            float *tbuf         = tmp.channel(i);
+
+            // Apply filter to the input buffer
+            f.clear();
+            f.process(tbuf, sbuf, slength);
+            dsp::fill_zero(&tbuf[slength], dlength - slength);
+            f.process(&tbuf[slength], &tbuf[slength], dlength - slength);
+
+            // Find the maximum and minimum envelope values
+            float *out_ppeak    = out.channel(channel_id++);
+            float *out_npeak    = out.channel(channel_id++);
+            float *out_psmooth  = out.channel(channel_id++);
+            float *out_nsmooth  = out.channel(channel_id++);
+            float *out_delta    = out.channel(channel_id++);
+            float *out_result   = out.channel(channel_id++);
+
+            // Step 1: find maximum values
+            for (size_t j=0; j<dlength; j += period)
+            {
+                size_t imin         = dsp::min_index(&tbuf[j], period);
+                size_t imax         = dsp::max_index(&tbuf[j], period);
+                float min           = tbuf[j + imin];
+                float max           = tbuf[j + imax];
+                if (min < 0.0f)
+                    out_npeak[j + imin]     = min;
+                if (max > 0.0f)
+                    out_ppeak[j + imax]     = max;
+            }
+
+            // Step 2: approximate the envelope around the values
+            approximate_envelope(out_psmooth, out_ppeak, dlength);
+            approximate_envelope(out_nsmooth, out_npeak, dlength);
+
+            // Compute the average value
+            dsp::lr_to_mid(out_delta, out_psmooth, out_nsmooth, dlength);
+
+            // Apply the result
+            dsp::sub3(out_result, sbuf, out_delta, lsp_min(dlength, slength));
+        }
+
+        // Return the value
+        out.set_sample_rate(src->sample_rate());
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
     status_t apply_rms_balance(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *rms)
     {
         // Process input data with the weighting filter and compute RMS
