@@ -23,6 +23,7 @@
 #define PRIVATE_CONFIG_H_
 
 #include <lsp-plug.in/runtime/LSPString.h>
+#include <private/audio.h>
 
 namespace spike_bender
 {
@@ -40,6 +41,11 @@ namespace spike_bender
             ssize_t                                 nSampleRate;    // Sample rate
             LSPString                               sInFile;        // Input file
             LSPString                               sOutFile;       // Output file
+            ssize_t                                 nPasses;        // Number of passes
+            float                                   fReactivity;    // Reactivity in milliseconds
+            float                                   fRange;         // Range in decibels
+            float                                   fKnee;          // Knee in decibels
+            weightening_t                           enWeightening;  // Weightening function
 
         public:
             explicit config_t();

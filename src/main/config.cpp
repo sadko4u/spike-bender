@@ -27,6 +27,11 @@ namespace spike_bender
     config_t::config_t()
     {
         nSampleRate         = -1;
+        nPasses             = 1;
+        fReactivity         = 40.0f;
+        fRange              = 6.0f;
+        fKnee               = 3.0f;
+        enWeightening       = NO_WEIGHT;
     }
 
     config_t::~config_t()
@@ -37,6 +42,11 @@ namespace spike_bender
     void config_t::clear()
     {
         nSampleRate         = -1;
+        nPasses             = 1;
+        fReactivity         = 40.0f;
+        fRange              = 6.0f;
+        fKnee               = 3.0f;
+        enWeightening       = NO_WEIGHT;
 
         sInFile.clear();
         sOutFile.clear();

@@ -48,11 +48,27 @@ namespace spike_bender
 
     static const option_t options[] =
     {
+        { "-dr",  "--dynamic-range",    false,     "Dynamic range of the compressor (in dB)"                },
         { "-if",  "--in-file",          false,     "Input file"                                             },
+        { "-k",   "--knee",             false,     "Knee of the compressor (in dB)"                         },
+        { "-np",  "--num-passes",       false,     "Number of passes"                                       },
         { "-of",  "--out-file",         false,     "Output file"                                            },
-        { "-sr",  "--srate",            false,     "Sample rate of output file"                             },
+        { "-r",   "--reactivity",       false,     "Reactivity of the compressor (in ms)"                   },
+        { "-sr",  "--srate",            false,     "Sample rate of ouput (processed) file"                  },
+        { "-wf",  "--weightening",      false,     "Frequency weightening function (none, a, b, c, d, k)"   },
 
         { NULL, NULL, false, NULL }
+    };
+
+    const cfg_flag_t weighting_flags[] =
+    {
+        { "none",   NO_WEIGHT   },
+        { "a",      A_WEIGHT    },
+        { "b",      B_WEIGHT    },
+        { "c",      A_WEIGHT    },
+        { "d",      B_WEIGHT    },
+        { "k",      K_WEIGHT    },
+        { NULL,     0           }
     };
 
     status_t print_usage(const char *name, bool fail)
@@ -187,7 +203,8 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t parse_cmdline_enum(ssize_t *dst, const char *parameter, const char *val, const cfg_flag_t *flags)
+    template <class T>
+    status_t parse_cmdline_enum(T *dst, const char *parameter, const char *val, const cfg_flag_t *flags)
     {
         LSPString in;
         if (!in.set_native(val))
@@ -195,35 +212,18 @@ namespace spike_bender
             fprintf(stderr, "Out of memory\n");
             return STATUS_NO_MEM;
         }
+        in.tolower();
 
-        io::InStringSequence is(&in);
-        expr::Tokenizer t(&is);
-        const cfg_flag_t *flag = NULL;
-
-        switch (t.get_token(expr::TF_GET | expr::TF_XKEYWORDS))
+        for (const cfg_flag_t *flag = flags; flag->name != NULL; ++flag)
         {
-            case expr::TT_BAREWORD:
-                if ((flag = find_config_flag(t.text_value(), flags)) == NULL)
-                {
-                    fprintf(stderr, "Bad '%s' value\n", parameter);
-                    return STATUS_BAD_FORMAT;
-                }
-                break;
-
-            default:
-                fprintf(stderr, "Bad '%s' value\n", parameter);
-                return STATUS_BAD_FORMAT;
+            if (in.equals_ascii(flag->name))
+            {
+                *dst = T(flag->value);
+                return STATUS_OK;
+            }
         }
 
-        if (t.get_token(expr::TF_GET) != expr::TT_EOF)
-        {
-            fprintf(stderr, "Bad '%s' value\n", parameter);
-            return STATUS_INVALID_VALUE;
-        }
-
-        *dst = flag->value;
-
-        return STATUS_OK;
+        return STATUS_INVALID_VALUE;
     }
 
     status_t parse_cmdline(config_t *cfg, int argc, const char **argv)
@@ -315,6 +315,58 @@ namespace spike_bender
         if ((val = options.get("--srate")) != NULL)
         {
             if ((res = parse_cmdline_int(&cfg->nSampleRate, val, "output sample rate")) != STATUS_OK)
+                return res;
+        }
+
+        // Parse other parameters
+        if ((val = options.get("--srate")) != NULL)
+        {
+            if ((res = parse_cmdline_int(&cfg->nSampleRate, val, "output sample rate")) != STATUS_OK)
+                return res;
+        }
+        if ((val = options.get("--dynamic-range")) != NULL)
+        {
+            if ((res = parse_cmdline_float(&cfg->fRange, val, "dynamic range")) != STATUS_OK)
+                return res;
+            if (cfg->fRange <= 0.0f)
+            {
+                fprintf(stderr, "Bad dynamic range value, should be positive\n");
+                return STATUS_BAD_ARGUMENTS;
+            }
+        }
+        if ((val = options.get("--knee")) != NULL)
+        {
+            if ((res = parse_cmdline_float(&cfg->fKnee, val, "knee")) != STATUS_OK)
+                return res;
+            if (cfg->fRange < 0.0f)
+            {
+                fprintf(stderr, "Bad knee value, should be non-negative\n");
+                return STATUS_BAD_ARGUMENTS;
+            }
+        }
+        if ((val = options.get("--num-passes")) != NULL)
+        {
+            if ((res = parse_cmdline_int(&cfg->nPasses, val, "number of passes")) != STATUS_OK)
+                return res;
+            if (cfg->nPasses <= 0)
+            {
+                fprintf(stderr, "Invalid number of passes, should be positive\n");
+                return STATUS_BAD_ARGUMENTS;
+            }
+        }
+        if ((val = options.get("--reactivity")) != NULL)
+        {
+            if ((res = parse_cmdline_float(&cfg->fReactivity, val, "reactivity")) != STATUS_OK)
+                return res;
+            if (cfg->fReactivity < 0.0f)
+            {
+                fprintf(stderr, "Bad reactivity value, should be non-negative\n");
+                return STATUS_BAD_ARGUMENTS;
+            }
+        }
+        if ((val = options.get("--weightening")) != NULL)
+        {
+            if ((res = parse_cmdline_enum(&cfg->enWeightening, val, "weightening function", weighting_flags)) != STATUS_OK)
                 return res;
         }
 

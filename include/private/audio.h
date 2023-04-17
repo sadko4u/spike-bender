@@ -59,7 +59,7 @@ namespace spike_bender
      * @param srate desired sample rate
      * @return status of operation
      */
-    status_t load_audio_file(dspu::Sample *sample, const LSPString *name, size_t srate);
+    status_t load_audio_file(dspu::Sample *sample, const LSPString *name, ssize_t srate);
 
     /**
      * Save audio file

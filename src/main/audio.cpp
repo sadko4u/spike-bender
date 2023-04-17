@@ -51,7 +51,7 @@ namespace spike_bender
         d->h = duration / 60;
     }
 
-    status_t load_audio_file(dspu::Sample *sample, const LSPString *name, size_t srate)
+    status_t load_audio_file(dspu::Sample *sample, const LSPString *name, ssize_t srate)
     {
         status_t res;
         dspu::Sample temp;
@@ -83,11 +83,14 @@ namespace spike_bender
             int(d.h), int(d.m), int(d.s), int(d.ms));
 
         // Resample audio data
-        if ((res = temp.resample(srate)) != STATUS_OK)
+        if (srate > 0)
         {
-            fprintf(stderr, "  could not resample file '%s' to sample rate %d, error code: %d\n",
-                name->get_native(), int(srate), int(res));
-            return res;
+            if ((res = temp.resample(srate)) != STATUS_OK)
+            {
+                fprintf(stderr, "  could not resample file '%s' to sample rate %d, error code: %d\n",
+                    name->get_native(), int(srate), int(res));
+                return res;
+            }
         }
 
         // Return result
@@ -1098,8 +1101,12 @@ namespace spike_bender
         // Return result
         out.set_sample_rate(src->sample_rate());
         g.set_sample_rate(src->sample_rate());
-        out.swap(dst);
-        g.swap(gain);
+
+
+        if (dst != NULL)
+            out.swap(dst);
+        if (gain != NULL)
+            g.swap(gain);
 
         return STATUS_OK;
     }
