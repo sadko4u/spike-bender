@@ -39,7 +39,7 @@ namespace spike_bender
         // Parse command line
         status_t res    = parse_cmdline(&cfg, argc, argv);
         if (res != STATUS_OK)
-            return print_usage(argv[0], true);
+            return (res != STATUS_SKIP) ? print_usage(argv[0], true) : STATUS_OK;
 
         // Load audio file
         if ((res = load_audio_file(&in, &cfg.sInFile, cfg.nSampleRate)) != STATUS_OK)
@@ -52,7 +52,7 @@ namespace spike_bender
 
         // Estmate average RMS
         size_t period   = size_t(dspu::millis_to_samples(cfg.nSampleRate, 400.0f)) | 1;
-        if ((res = estimate_rms(&rms, &in, cfg.enWeightening, period)) != STATUS_OK)
+        if ((res = estimate_rms(&rms, &in, cfg.enWeighting, period)) != STATUS_OK)
         {
             fprintf(stderr, "Error estimating long-time RMS value, code=%d\n", int(res));
             return res;
@@ -77,7 +77,7 @@ namespace spike_bender
             // Estmate short-time weighted RMS
             period          = size_t(dspu::millis_to_samples(cfg.nSampleRate, cfg.fReactivity)) | 1;
 
-            if ((res = estimate_rms(&rms, src, cfg.enWeightening, period)) != STATUS_OK)
+            if ((res = estimate_rms(&rms, src, cfg.enWeighting, period)) != STATUS_OK)
             {
                 fprintf(stderr, "Error estimating short-time RMS value for pass #%d, code=%d\n",
                     int(i), int(res));

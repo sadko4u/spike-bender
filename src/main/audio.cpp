@@ -132,7 +132,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t apply_weight(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight)
+    status_t apply_weight(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight)
     {
         status_t res;
         dspu::Filter f;
@@ -199,7 +199,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period)
+    status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period)
     {
         dspu::Filter f;
 
@@ -291,7 +291,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t estimate_rms_balance(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period)
+    status_t estimate_rms_balance(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period)
     {
         dspu::Filter f;
 
@@ -425,7 +425,7 @@ namespace spike_bender
             dsp::smooth_cubic_linear(&dst[ppeak], src[ppeak], src[count - 1], count - ppeak - 1);
     }
 
-    status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period)
+    status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period)
     {
         dspu::Filter f;
 
@@ -569,7 +569,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t estimate_partial_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period, bool positive)
+    status_t estimate_partial_rms(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period, bool positive)
     {
         dspu::Filter f;
 
@@ -665,7 +665,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period)
+    status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period)
     {
         dspu::Filter f;
 

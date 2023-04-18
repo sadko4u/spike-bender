@@ -33,14 +33,14 @@ namespace spike_bender
     /**
      * Frequency weightening function for the RMS estimation
      */
-    enum weightening_t
+    enum weighting_t
     {
         NO_WEIGHT,  /**< No frequency weightening function */
-        A_WEIGHT,   /**< A-Weightening filter applied */
-        B_WEIGHT,   /**< B-Weightening filter applied */
-        C_WEIGHT,   /**< C-Weightening filter applied */
-        D_WEIGHT,   /**< D-Weightening filter applied */
-        K_WEIGHT    /**< K-Weightening filter applied */
+        A_WEIGHT,   /**< A-Weighting filter applied */
+        B_WEIGHT,   /**< B-Weighting filter applied */
+        C_WEIGHT,   /**< C-Weighting filter applied */
+        D_WEIGHT,   /**< D-Weighting filter applied */
+        K_WEIGHT    /**< K-Weighting filter applied */
     };
 
     typedef struct range_t
@@ -79,7 +79,7 @@ namespace spike_bender
      * @param period the RMS estimation frame size in samples
      * @return status of operation
      */
-    status_t apply_weight(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight);
+    status_t apply_weight(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight);
 
     /**
      * Estimate the RMS of the input sample and store to another sample
@@ -89,10 +89,10 @@ namespace spike_bender
      * @param period the RMS estimation frame size in samples
      * @return status of operation
      */
-    status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
-    status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
-    status_t estimate_partial_rms(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period, bool positive);
-    status_t estimate_rms_balance(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
+    status_t estimate_rms(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period);
+    status_t estimate_average(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period);
+    status_t estimate_partial_rms(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period, bool positive);
+    status_t estimate_rms_balance(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period);
     status_t apply_rms_balance(dspu::Sample *dst, const dspu::Sample *src, const dspu::Sample *rms);
 
     /**
@@ -130,7 +130,7 @@ namespace spike_bender
         float range_db,
         float knee_db);
 
-    status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weightening_t weight, size_t period);
+    status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period);
 } /* namespace spike_bender */
 
 

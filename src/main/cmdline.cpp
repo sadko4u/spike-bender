@@ -55,7 +55,7 @@ namespace spike_bender
         { "-of",  "--out-file",         false,     "Output file"                                            },
         { "-r",   "--reactivity",       false,     "Reactivity of the compressor (in ms)"                   },
         { "-sr",  "--srate",            false,     "Sample rate of ouput (processed) file"                  },
-        { "-wf",  "--weightening",      false,     "Frequency weightening function (none, a, b, c, d, k)"   },
+        { "-wf",  "--weighting",        false,     "Frequency weighting function (none, a, b, c, d, k)"     },
 
         { NULL, NULL, false, NULL }
     };
@@ -359,9 +359,9 @@ namespace spike_bender
                 return STATUS_BAD_ARGUMENTS;
             }
         }
-        if ((val = options.get("--weightening")) != NULL)
+        if ((val = options.get("--weighting")) != NULL)
         {
-            if ((res = parse_cmdline_enum(&cfg->enWeightening, val, "weightening function", weighting_flags)) != STATUS_OK)
+            if ((res = parse_cmdline_enum(&cfg->enWeighting, val, "weighting function", weighting_flags)) != STATUS_OK)
                 return res;
         }
 

@@ -32,7 +32,7 @@ namespace
 {
     typedef struct weigth_t
     {
-        spike_bender::weightening_t type;
+        spike_bender::weighting_t type;
         const char *name;
     } weight_t;
 

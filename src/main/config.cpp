@@ -31,7 +31,7 @@ namespace spike_bender
         fReactivity         = 40.0f;
         fRange              = 6.0f;
         fKnee               = 3.0f;
-        enWeightening       = NO_WEIGHT;
+        enWeighting       = NO_WEIGHT;
     }
 
     config_t::~config_t()
@@ -46,7 +46,7 @@ namespace spike_bender
         fReactivity         = 40.0f;
         fRange              = 6.0f;
         fKnee               = 3.0f;
-        enWeightening       = NO_WEIGHT;
+        enWeighting       = NO_WEIGHT;
 
         sInFile.clear();
         sOutFile.clear();

@@ -42,7 +42,7 @@ UTEST_BEGIN("spike_bender", cmdline)
         UTEST_ASSERT(float_equals_adaptive(cfg->fRange, 8.0f));
         UTEST_ASSERT(float_equals_adaptive(cfg->fKnee, 1.0f));
         UTEST_ASSERT(cfg->nPasses == 2);
-        UTEST_ASSERT(cfg->enWeightening == spike_bender::A_WEIGHT);
+        UTEST_ASSERT(cfg->enWeighting == spike_bender::A_WEIGHT);
     }
 
     void parse_cmdline(spike_bender::config_t *cfg)
