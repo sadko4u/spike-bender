@@ -204,7 +204,7 @@ namespace spike_bender
     }
 
     template <class T>
-    status_t parse_cmdline_enum(T *dst, const char *parameter, const char *val, const cfg_flag_t *flags)
+    status_t parse_cmdline_enum(T *dst, const char *val, const char *parameter, const cfg_flag_t *flags)
     {
         LSPString in;
         if (!in.set_native(val))
@@ -222,6 +222,8 @@ namespace spike_bender
                 return STATUS_OK;
             }
         }
+
+        fprintf(stderr, "Bad '%s' value: '%s'\n", parameter, val);
 
         return STATUS_INVALID_VALUE;
     }
@@ -309,13 +311,6 @@ namespace spike_bender
         {
             fprintf(stderr, "Output file name required\n");
             return STATUS_BAD_ARGUMENTS;
-        }
-
-        // Parse other parameters
-        if ((val = options.get("--srate")) != NULL)
-        {
-            if ((res = parse_cmdline_int(&cfg->nSampleRate, val, "output sample rate")) != STATUS_OK)
-                return res;
         }
 
         // Parse other parameters
