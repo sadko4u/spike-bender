@@ -20,12 +20,12 @@
  */
 
 #include <lsp-plug.in/dsp/dsp.h>
-
 #include <private/tool.h>
 
 #ifndef LSP_IDE_DEBUG
     int main(int argc, const char **argv)
     {
+        lsp::dsp::init();
         return spike_bender::main(argc, argv);
     }
 #endif /* LSP_IDE_DEBUG */

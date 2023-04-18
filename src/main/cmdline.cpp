@@ -48,14 +48,14 @@ namespace spike_bender
 
     static const option_t options[] =
     {
-        { "-dr",  "--dynamic-range",    false,     "Dynamic range of the compressor (in dB)"                },
-        { "-if",  "--in-file",          false,     "Input file"                                             },
-        { "-k",   "--knee",             false,     "Knee of the compressor (in dB)"                         },
-        { "-np",  "--num-passes",       false,     "Number of passes"                                       },
-        { "-of",  "--out-file",         false,     "Output file"                                            },
-        { "-r",   "--reactivity",       false,     "Reactivity of the compressor (in ms)"                   },
-        { "-sr",  "--srate",            false,     "Sample rate of ouput (processed) file"                  },
-        { "-wf",  "--weighting",        false,     "Frequency weighting function (none, a, b, c, d, k)"     },
+        { "-dr",  "--dynamic-range",    false,     "Dynamic range of the compressor (in dB, 6 dB by default)"               },
+        { "-if",  "--in-file",          false,     "The path to the input file"                                             },
+        { "-k",   "--knee",             false,     "Knee of the compressor (in dB, 3 dB by default)"                        },
+        { "-np",  "--num-passes",       false,     "Number of passes, 1 by default"                                         },
+        { "-of",  "--out-file",         false,     "The path to the utput file"                                             },
+        { "-r",   "--reactivity",       false,     "Reactivity of the compressor (in ms, 40 ms by default)"                 },
+        { "-sr",  "--srate",            false,     "Sample rate of ouput (processed) file, optional"                        },
+        { "-wf",  "--weighting",        false,     "Frequency weighting function (none, a, b, c, d, k, none by default)"    },
 
         { NULL, NULL, false, NULL }
     };

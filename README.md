@@ -34,15 +34,14 @@ spike-bender --help
 The available option list will be the following:
 
 ```
-  -dr, --dynamic-range    Dynamic range of the compressor (in dB)
-  -if, --in-file          Input file
-  -k, --knee              Knee of the compressor (in dB)
-  -np, --num-passes       Number of passes
-  -of, --out-file         Output file
-  -r, --reactivity        Reactivity of the compressor (in ms)
-  -sr, --srate            Sample rate of ouput (processed) file
-  -wf, --weighting        Frequency weighting function (none, a, b, c, d, k)
-
+  -dr, --dynamic-range    Dynamic range of the compressor (in dB, 6 dB by default)
+  -if, --in-file          The path to the input file
+  -k, --knee              Knee of the compressor (in dB, 3 dB by default)
+  -np, --num-passes       Number of passes, 1 by default
+  -of, --out-file         The path to the utput file
+  -r, --reactivity        Reactivity of the compressor (in ms, 40 ms by default)
+  -sr, --srate            Sample rate of ouput (processed) file, optional
+  -wf, --weighting        Frequency weighting function (none, a, b, c, d, k, none by default)
 ```
 
 Requirements

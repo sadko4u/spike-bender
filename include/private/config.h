@@ -45,7 +45,7 @@ namespace spike_bender
             float                                   fReactivity;    // Reactivity in milliseconds
             float                                   fRange;         // Range in decibels
             float                                   fKnee;          // Knee in decibels
-            weighting_t                           enWeighting;  // Weightening function
+            weighting_t                             enWeighting;    // Weighting function
 
         public:
             explicit config_t();

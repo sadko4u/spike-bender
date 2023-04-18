@@ -3,7 +3,7 @@
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of spike-bender
- * Created on: 24 мар. 2023 г.
+ * Created on: 18 апр. 2023 г.
  *
  * spike-bender is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,41 +19,23 @@
  * along with spike-bender. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/config.h>
+#include <lsp-plug.in/test-fw/mtest.h>
+#include <lsp-plug.in/lltl/parray.h>
+#include <private/tool.h>
 
-namespace spike_bender
-{
+MTEST_BEGIN("spike_bender", main)
 
-    config_t::config_t()
+    MTEST_MAIN
     {
-        nSampleRate         = -1;
-        nPasses             = 1;
-        fReactivity         = 40.0f;
-        fRange              = 6.0f;
-        fKnee               = 3.0f;
-        enWeighting         = NO_WEIGHT;
+        lltl::parray<char> args;
+        args.add(const_cast<char *>(full_name()));
+
+        for (ssize_t i=0; i < argc; ++i)
+            args.add(const_cast<char *>(argv[i]));
+
+        spike_bender::main(args.size(), const_cast<const char **>(args.array()));
     }
 
-    config_t::~config_t()
-    {
-        clear();
-    }
-
-    void config_t::clear()
-    {
-        nSampleRate         = -1;
-        nPasses             = 1;
-        fReactivity         = 40.0f;
-        fRange              = 6.0f;
-        fKnee               = 3.0f;
-        enWeighting         = NO_WEIGHT;
-
-        sInFile.clear();
-        sOutFile.clear();
-    }
-
-
-} /* namespace spike_bender */
-
+MTEST_END
 
 
