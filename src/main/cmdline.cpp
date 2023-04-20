@@ -51,6 +51,8 @@ namespace spike_bender
         { "-dr",  "--dynamic-range",    false,     "Dynamic range of the compressor (in dB, 6 dB by default)"               },
         { "-if",  "--in-file",          false,     "The path to the input file"                                             },
         { "-k",   "--knee",             false,     "Knee of the compressor (in dB, 3 dB by default)"                        },
+        { "-n",   "--normalize",        false,     "Set normalization mode"                                                 },
+        { "-ng",  "--norm-gain",        false,     "Set normalization peak gain (in dB)"                                    },
         { "-np",  "--num-passes",       false,     "Number of passes, 1 by default"                                         },
         { "-of",  "--out-file",         false,     "The path to the utput file"                                             },
         { "-r",   "--reactivity",       false,     "Reactivity of the compressor (in ms, 40 ms by default)"                 },
@@ -68,6 +70,15 @@ namespace spike_bender
         { "c",      A_WEIGHT    },
         { "d",      B_WEIGHT    },
         { "k",      K_WEIGHT    },
+        { NULL,     0           }
+    };
+
+    const cfg_flag_t normalize_flags[] =
+    {
+        { "none",   NORM_NONE   },
+        { "above",  NORM_ABOVE  },
+        { "below",  NORM_BELOW  },
+        { "always", NORM_ALWAYS },
         { NULL,     0           }
     };
 
@@ -362,6 +373,16 @@ namespace spike_bender
         if ((val = options.get("--weighting")) != NULL)
         {
             if ((res = parse_cmdline_enum(&cfg->enWeighting, val, "weighting function", weighting_flags)) != STATUS_OK)
+                return res;
+        }
+        if ((val = options.get("--normalize")) != NULL)
+        {
+            if ((res = parse_cmdline_enum(&cfg->enNormalize, val, "normalize", normalize_flags)) != STATUS_OK)
+                return res;
+        }
+        if ((val = options.get("--norm-gain")) != NULL)
+        {
+            if ((res = parse_cmdline_float(&cfg->fNormGain, val, "norm-gain")) != STATUS_OK)
                 return res;
         }
 

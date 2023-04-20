@@ -100,6 +100,14 @@ namespace spike_bender
         // Write result
         if (!cfg.sOutFile.is_empty())
         {
+            // Normalize if required
+            float ngain         = dspu::db_to_gain(cfg.fNormGain);
+            if ((res = normalize(&out, ngain, cfg.enNormalize)) != STATUS_OK)
+            {
+                fprintf(stderr, "Error normalizing output audio file, error code: %d\n", int(res));
+                return res;
+            }
+
             if ((res = save_audio_file(&out, &cfg.sOutFile)) != STATUS_OK)
             {
                 fprintf(stderr, "Error saving audio file '%s', code=%d\n", cfg.sOutFile.get_native(), int(res));

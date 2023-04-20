@@ -32,6 +32,8 @@ namespace spike_bender
         fRange              = 6.0f;
         fKnee               = 3.0f;
         enWeighting         = NO_WEIGHT;
+        enNormalize         = NORM_NONE;
+        fNormGain           = 0.0f;
     }
 
     config_t::~config_t()
@@ -47,6 +49,8 @@ namespace spike_bender
         fRange              = 6.0f;
         fKnee               = 3.0f;
         enWeighting         = NO_WEIGHT;
+        enNormalize         = NORM_NONE;
+        fNormGain           = 0.0f;
 
         sInFile.clear();
         sOutFile.clear();

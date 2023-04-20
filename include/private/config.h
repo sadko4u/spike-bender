@@ -46,6 +46,8 @@ namespace spike_bender
             float                                   fRange;         // Range in decibels
             float                                   fKnee;          // Knee in decibels
             weighting_t                             enWeighting;    // Weighting function
+            normalize_t                             enNormalize;    // Normalization method
+            float                                   fNormGain;      // Normalization gain
 
         public:
             explicit config_t();

@@ -43,6 +43,14 @@ namespace spike_bender
         K_WEIGHT    /**< K-Weighting filter applied */
     };
 
+    enum normalize_t
+    {
+        NORM_NONE,      // No normalization
+        NORM_ABOVE,     // When the maximum peak is above the threshold
+        NORM_BELOW,     // When the maximum peak is below the threshold
+        NORM_ALWAYS     // Always normalize
+    };
+
     typedef struct range_t
     {
         size_t first;   // The first sample in range
@@ -131,6 +139,15 @@ namespace spike_bender
         float knee_db);
 
     status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period);
+
+    /**
+     * Normalize sample to the specified gain
+     * @param dst sample to normalize
+     * @param gain the maximum peak gain
+     * @param mode the normalization mode
+     * @return status of operation
+     */
+    status_t normalize(dspu::Sample *dst, float gain, normalize_t mode);
 } /* namespace spike_bender */
 
 
