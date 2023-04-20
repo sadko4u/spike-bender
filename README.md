@@ -18,6 +18,7 @@ The overall behaviour is the following:
   * Configure the upward compressor according to the computed RMS value.
   * Adjust the volume of the audio file within the selected dynamics range
     to match the specified RMS value.
+* Normalize the output file if required.
 * Write the output file.
 
 Using The Software
@@ -37,6 +38,8 @@ The available option list will be the following:
   -dr, --dynamic-range    Dynamic range of the compressor (in dB, 6 dB by default)
   -if, --in-file          The path to the input file
   -k, --knee              Knee of the compressor (in dB, 3 dB by default)
+  -n, --normalize         Set normalization mode (none, above, below, always, none by default)
+  -ng, --norm-gain        Set normalization peak gain (in dB, 0 dB by default)
   -np, --num-passes       Number of passes, 1 by default
   -of, --out-file         The path to the utput file
   -r, --reactivity        Reactivity of the compressor (in ms, 40 ms by default)
