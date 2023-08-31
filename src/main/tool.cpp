@@ -97,6 +97,16 @@ namespace spike_bender
             }
         }
 
+        // Smash peaks?
+        if (cfg.fPeakThresh > 1.0f)
+        {
+            if ((res = smash_amplitude(&out, &out, cfg.fPeakThresh)) != STATUS_OK)
+            {
+                fprintf(stderr, "Error smashing amplitude, error code: %d\n", int(res));
+                return res;
+            }
+        }
+
         // Write result
         if (!cfg.sOutFile.is_empty())
         {

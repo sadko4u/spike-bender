@@ -18,6 +18,7 @@ The overall behaviour is the following:
   * Configure the upward compressor according to the computed RMS value.
   * Adjust the volume of the audio file within the selected dynamics range
     to match the specified RMS value.
+* Find the peaks that exceed the median peak value for more than configured threshold and eliminate them.
 * Normalize the output file if required.
 * Write the output file.
 
@@ -36,14 +37,15 @@ The available option list will be the following:
 
 ```
   -dr, --dynamic-range    Dynamic range of the compressor (in dB, 6 dB by default)
+  -ep, --eliminate-peaks  The threshold above which all peaks are eliminated (in dB, 1 dB by default, off if not positive),
   -if, --in-file          The path to the input file
   -k, --knee              Knee of the compressor (in dB, 3 dB by default)
   -n, --normalize         Set normalization mode (none, above, below, always, none by default)
   -ng, --norm-gain        Set normalization peak gain (in dB, 0 dB by default)
   -np, --num-passes       Number of passes, 1 by default
-  -of, --out-file         The path to the utput file
+  -of, --out-file         The path to the output file
   -r, --reactivity        Reactivity of the compressor (in ms, 40 ms by default)
-  -sr, --srate            Sample rate of ouput (processed) file, optional
+  -sr, --srate            Sample rate of output (processed) file, optional
   -wf, --weighting        Frequency weighting function (none, a, b, c, d, k, none by default)
 ```
 

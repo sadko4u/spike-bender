@@ -48,6 +48,7 @@ namespace spike_bender
             weighting_t                             enWeighting;    // Weighting function
             normalize_t                             enNormalize;    // Normalization method
             float                                   fNormGain;      // Normalization gain
+            float                                   fPeakThresh;      // Amplitude smash threshold
 
         public:
             explicit config_t();
