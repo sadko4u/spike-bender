@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of spike-bender
 #
@@ -92,6 +92,13 @@ else
   CXXFLAGS_EXT       += -O2
 endif
 
+ifeq ($(ASAN),1)
+  CFLAGS_EXT         += -fsanitize=address
+  CXXFLAGS_EXT       += -fsanitize=address
+  EXE_FLAGS_EXT      += -fsanitize=address
+  SO_FLAGS_EXT       += -fsanitize=address
+endif
+
 ifeq ($(PROFILE),1)
   CFLAGS_EXT         += -pg -DLSP_PROFILE
   CXXFLAGS_EXT       += -pg -DLSP_PROFILE
@@ -100,6 +107,11 @@ endif
 ifeq ($(TRACE),1)
   CFLAGS_EXT         += -DLSP_TRACE
   CXXFLAGS_EXT       += -DLSP_TRACE
+endif
+
+ifeq ($(STRICT),1)
+  CFLAGS_EXT         += -Werror
+  CXXFLAGS_EXT       += -Werror
 endif
 
 ifeq ($(TEST),1)
