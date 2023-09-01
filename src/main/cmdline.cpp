@@ -133,13 +133,13 @@ namespace spike_bender
         {
             case expr::TT_IVALUE: ivalue = t.int_value(); break;
             default:
-                fprintf(stderr, "Bad '%s' value\n", parameter);
+                fprintf(stderr, "Bad '%s' value: '%s'\n", parameter, val);
                 return STATUS_INVALID_VALUE;
         }
 
         if (t.get_token(expr::TF_GET) != expr::TT_EOF)
         {
-            fprintf(stderr, "Bad '%s' value\n", parameter);
+            fprintf(stderr, "Bad '%s' value '%s'\n", parameter, val);
             return STATUS_INVALID_VALUE;
         }
 
@@ -166,13 +166,13 @@ namespace spike_bender
             case expr::TT_IVALUE: fvalue = t.int_value(); break;
             case expr::TT_FVALUE: fvalue = t.float_value(); break;
             default:
-                fprintf(stderr, "Bad '%s' value\n", parameter);
+                fprintf(stderr, "Bad '%s' value: '%s'\n", parameter, val);
                 return STATUS_INVALID_VALUE;
         }
 
         if (t.get_token(expr::TF_GET) != expr::TT_EOF)
         {
-            fprintf(stderr, "Bad '%s' value\n", parameter);
+            fprintf(stderr, "Bad '%s' value '%s'\n", parameter, val);
             return STATUS_INVALID_VALUE;
         }
 
@@ -201,13 +201,13 @@ namespace spike_bender
             case expr::TT_TRUE: bvalue = true; break;
             case expr::TT_FALSE: bvalue = false; break;
             default:
-                fprintf(stderr, "Bad '%s' value\n", parameter);
+                fprintf(stderr, "Bad '%s' value '%s'\n", parameter, val);
                 return STATUS_INVALID_VALUE;
         }
 
         if (t.get_token(expr::TF_GET) != expr::TT_EOF)
         {
-            fprintf(stderr, "Bad '%s' value\n", parameter);
+            fprintf(stderr, "Bad '%s' value '%s'\n", parameter, val);
             return STATUS_INVALID_VALUE;
         }
 
