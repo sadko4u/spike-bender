@@ -20,6 +20,7 @@
  */
 
 #include <private/config.h>
+#include <lsp-plug.in/dsp-units/units.h>
 
 namespace spike_bender
 {
@@ -34,6 +35,7 @@ namespace spike_bender
         enWeighting         = NO_WEIGHT;
         enNormalize         = NORM_NONE;
         fNormGain           = 0.0f;
+        fPeakThresh           = dspu::db_to_gain(1.0f);
     }
 
     config_t::~config_t()
@@ -51,6 +53,7 @@ namespace spike_bender
         enWeighting         = NO_WEIGHT;
         enNormalize         = NORM_NONE;
         fNormGain           = 0.0f;
+        fPeakThresh           = dspu::db_to_gain(1.0f);
 
         sInFile.clear();
         sOutFile.clear();

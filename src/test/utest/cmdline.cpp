@@ -22,6 +22,7 @@
 #include <lsp-plug.in/test-fw/utest.h>
 #include <lsp-plug.in/test-fw/helpers.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/dsp-units/filters/common.h>
@@ -45,6 +46,7 @@ UTEST_BEGIN("spike_bender", cmdline)
         UTEST_ASSERT(cfg->enWeighting == spike_bender::A_WEIGHT);
         UTEST_ASSERT(cfg->enNormalize == spike_bender::NORM_ALWAYS);
         UTEST_ASSERT(float_equals_adaptive(cfg->fNormGain, -6.0f));
+        UTEST_ASSERT(float_equals_adaptive(cfg->fPeakThresh, dspu::db_to_gain(6.1f)));
     }
 
     void parse_cmdline(spike_bender::config_t *cfg)
@@ -54,6 +56,7 @@ UTEST_BEGIN("spike_bender", cmdline)
             "-sr",  "88200",
             "-if",  "in-file.wav",
             "-of",  "out-file.wav",
+            "-ep",  "6.1",
             "-dr",  "8",
             "-k",   "1",
             "-np",  "2",

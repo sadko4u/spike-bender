@@ -23,6 +23,8 @@
 #include <lsp-plug.in/dsp-units/filters/Filter.h>
 #include <lsp-plug.in/dsp-units/dynamics/DynamicProcessor.h>
 #include <lsp-plug.in/dsp-units/units.h>
+#include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
@@ -1145,6 +1147,223 @@ namespace spike_bender
         float k = gain / peak;
         for (size_t i=0, n=dst->channels(); i<n; ++i)
             dsp::mul_k2(dst->channel(i), k, dst->length());
+
+        return STATUS_OK;
+    }
+
+    static inline ssize_t compare_float(const void *a, const void *b, size_t size)
+    {
+        const range_t *fa = static_cast<const range_t *>(a);
+        const range_t *fb = static_cast<const range_t *>(b);
+        if (fa->gain < fb->gain)
+            return -1;
+        return (fa->gain > fb->gain) ? 1 : 0.0f;
+    }
+
+    static inline bool median_value(float *res, const lltl::darray<range_t> *list)
+    {
+        lltl::parray<range_t> me;
+
+        if (!me.reserve(list->size()))
+            return false;
+
+        for (size_t i=0, n=list->size(); i<n; ++i)
+        {
+            if (!me.add(const_cast<range_t *>(list->uget(i))))
+                return false;
+        }
+
+        me.qsort(compare_float);
+
+        size_t size = list->size();
+        if (size < 2)
+        {
+            *res = (size > 0) ? me.uget(0)->gain : 0.0f;
+            return true;
+        }
+        if (size & 1)
+        {
+            *res = 0.5f * (me.uget(size >> 1)->gain + me.uget((size >> 1) + 1)->gain);
+            return true;
+        }
+
+        *res = me.uget(size >> 1)->gain;
+        return true;
+    }
+
+    static inline bool check_threshold(const range_t *r, float pos, float neg)
+    {
+        if (r->gain > 0.0f)
+            return r->gain >= pos;
+        return r->gain <= neg;
+    }
+
+    typedef struct g_point_t
+    {
+        size_t  pos;
+        float   gain;
+    } g_point_t;
+
+    static inline float interpolate(float a, float b, float x)
+    {
+        float d = b - a;
+        return a + d * x * x * (3.0f - 2.0f * x);
+    }
+
+    static status_t smash_range(float *v, lltl::darray<range_t> & ranges, size_t & index, float p_avg, float n_avg)
+    {
+        lltl::darray<g_point_t> points;
+        size_t first    = index;
+        size_t last     = index;
+
+        // Find start of the peak
+        while (first > 0)
+        {
+            range_t *r = ranges.uget(first - 1);
+            if (!check_threshold(r, p_avg, n_avg))
+                break;
+            --first;
+        }
+
+        // Find end of the peak
+        while (last < ranges.size() - 1)
+        {
+            range_t *r = ranges.uget(last + 1);
+            if (!check_threshold(r, p_avg, n_avg))
+                break;
+            ++last;
+        }
+
+        // Form the list of gain points
+        g_point_t *p    = NULL;
+        range_t *r      = NULL;
+        r               = ranges.uget(first);
+        if ((p = points.add()) == NULL)
+            return STATUS_NO_MEM;
+        p->pos          = r->first;
+        p->gain         = 1.0f;
+
+        for (size_t i=first; i<=last; ++i)
+        {
+            range_t *r      = ranges.uget(i);
+            if ((p = points.add()) == NULL)
+                return STATUS_NO_MEM;
+            p->pos          = r->peak;
+            p->gain         = (r->gain >= 0.0f) ? p_avg / r->gain : n_avg / r->gain;
+        }
+
+        r               = ranges.uget(last);
+        if ((p = points.add()) == NULL)
+            return STATUS_NO_MEM;
+        p->pos          = r->last;
+        p->gain         = 1.0f;
+
+        // Apply gain compensation
+        lsp_trace("Applying gain compensation for range[%d, %d]", int(points.first()->pos), int(points.last()->pos));
+
+        g_point_t *pp   = points.uget(0);
+        for (size_t i=1, n=points.size(); i < n; ++i)
+        {
+            p               = points.uget(i);
+            float k         = 1.0f / (p->pos - pp->pos);
+
+            for (size_t j=pp->pos; j<p->pos; ++j)
+                v[j]           *= interpolate(pp->gain, p->gain, (j - pp->pos) * k);
+
+            pp              = p;
+        }
+
+        // Return new index
+        index           = last + 1;
+
+        return STATUS_OK;
+    }
+
+    status_t smash_amplitude(dspu::Sample *dst, const dspu::Sample *src, float threshold)
+    {
+        lltl::darray<range_t> p_me, n_me, ranges;
+        status_t res;
+        dspu::Sample out;
+        range_t curr;
+
+        if ((res = out.copy(src)) != STATUS_OK)
+            return res;
+        out.set_sample_rate(src->sample_rate());
+
+        curr.first      = 0;
+        curr.last       = 0;
+        curr.gain       = 0.0f;
+        curr.peak       = 0;
+
+        for (size_t i=0, n=src->channels(); i<n; ++i)
+        {
+            // Pass 1: find the median peak gain
+            // Signals can be asymmetric, so we estimate average for positive and negative peaks separately
+            float *in       = out.channel(i);
+            float s_prev    = 0.0f;
+
+            for (size_t j=0, m=out.samples(); j<m; ++j)
+            {
+                float s         = in[j];
+                if (fabsf(s) > fabsf(curr.gain))
+                {
+                    curr.gain       = s;
+                    curr.peak       = j;
+                }
+
+                // Crossing the zero?
+                if (((s_prev < 0.0f) && (s >= 0.0f)) ||
+                    ((s_prev > 0.0f) && (s <= 0.0f)))
+                {
+                    curr.last       = j;
+
+                    // Add new range to the list
+                    if (curr.last > curr.first)
+                    {
+                        lltl::darray<range_t> & x_me = (curr.gain > 0.0f) ? p_me : n_me;
+                        if (!ranges.add(&curr))
+                            return STATUS_NO_MEM;
+                        if (!x_me.add(&curr))
+                            return STATUS_NO_MEM;
+                    }
+
+                    curr.first      = j;
+                    curr.gain       = 0.0f;
+                    curr.peak       = 0;
+                }
+
+                s_prev          = s;
+            }
+
+            // Estimate median values
+            float p_avg     = 0.0f;
+            float n_avg     = 0.0f;
+            if (!median_value(&p_avg, &p_me))
+                return STATUS_NO_MEM;
+            if (!median_value(&n_avg, &n_me))
+                return STATUS_NO_MEM;
+            p_me.clear();
+            n_me.clear();
+
+            // Pass 2: pass through the list of peaks and adjust the volume
+            for (size_t j=0, m=ranges.size(); j<m; )
+            {
+                range_t *r      = ranges.uget(j);
+                if (check_threshold(r, p_avg * threshold, n_avg * threshold))
+                {
+                    if ((res = smash_range(in, ranges, j, p_avg, n_avg)) != STATUS_OK)
+                        return res;
+                }
+                else
+                    ++j;
+            }
+
+            // Flush ranges
+            ranges.clear();
+        }
+
+        // Commit the result
+        out.swap(dst);
 
         return STATUS_OK;
     }

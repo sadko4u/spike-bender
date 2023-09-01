@@ -140,6 +140,8 @@ namespace spike_bender
 
     status_t estimate_envelope(dspu::Sample *dst, const dspu::Sample *src, weighting_t weight, size_t period);
 
+    status_t smash_amplitude(dspu::Sample *dst, const dspu::Sample *src, float threshold);
+
     /**
      * Normalize sample to the specified gain
      * @param dst sample to normalize
