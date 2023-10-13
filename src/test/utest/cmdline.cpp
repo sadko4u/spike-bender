@@ -47,6 +47,7 @@ UTEST_BEGIN("spike_bender", cmdline)
         UTEST_ASSERT(cfg->enNormalize == spike_bender::NORM_ALWAYS);
         UTEST_ASSERT(float_equals_adaptive(cfg->fNormGain, -6.0f));
         UTEST_ASSERT(float_equals_adaptive(cfg->fPeakThresh, dspu::db_to_gain(6.1f)));
+        UTEST_ASSERT(cfg->bEliminatePeaks == true);
     }
 
     void parse_cmdline(spike_bender::config_t *cfg)
@@ -56,7 +57,8 @@ UTEST_BEGIN("spike_bender", cmdline)
             "-sr",  "88200",
             "-if",  "in-file.wav",
             "-of",  "out-file.wav",
-            "-ep",  "6.1",
+            "-pt",  "6.1",
+            "-ep",
             "-dr",  "8",
             "-k",   "1",
             "-np",  "2",

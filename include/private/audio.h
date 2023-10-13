@@ -59,6 +59,12 @@ namespace spike_bender
         float  gain;    // The peak value
     } range_t;
 
+    typedef struct peak_t
+    {
+        size_t index;   // The peak index
+        float  gain;    // The peak value
+    } peak_t;
+
     /**
      * Load audio file and perform resampling
      *

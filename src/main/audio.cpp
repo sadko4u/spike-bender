@@ -1151,7 +1151,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    static inline ssize_t compare_float(const void *a, const void *b, size_t size)
+    static inline ssize_t compare_range(const void *a, const void *b, size_t size)
     {
         const range_t *fa = static_cast<const range_t *>(a);
         const range_t *fb = static_cast<const range_t *>(b);
@@ -1173,7 +1173,47 @@ namespace spike_bender
                 return false;
         }
 
-        me.qsort(compare_float);
+        me.qsort(compare_range);
+
+        size_t size = list->size();
+        if (size < 2)
+        {
+            *res = (size > 0) ? me.uget(0)->gain : 0.0f;
+            return true;
+        }
+        if (size & 1)
+        {
+            *res = 0.5f * (me.uget(size >> 1)->gain + me.uget((size >> 1) + 1)->gain);
+            return true;
+        }
+
+        *res = me.uget(size >> 1)->gain;
+        return true;
+    }
+
+    static inline ssize_t compare_peak(const void *a, const void *b, size_t size)
+    {
+        const peak_t *fa = static_cast<const peak_t *>(a);
+        const peak_t *fb = static_cast<const peak_t *>(b);
+        if (fa->gain < fb->gain)
+            return -1;
+        return (fa->gain > fb->gain) ? 1 : 0.0f;
+    }
+
+    static inline bool median_value(float *res, const lltl::darray<peak_t> *list)
+    {
+        lltl::parray<peak_t> me;
+
+        if (!me.reserve(list->size()))
+            return false;
+
+        for (size_t i=0, n=list->size(); i<n; ++i)
+        {
+            if (!me.add(const_cast<peak_t *>(list->uget(i))))
+                return false;
+        }
+
+        me.qsort(compare_peak);
 
         size_t size = list->size();
         if (size < 2)
@@ -1279,7 +1319,7 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t smash_amplitude(dspu::Sample *dst, const dspu::Sample *src, float threshold)
+    status_t smash_amplitude_old(dspu::Sample *dst, const dspu::Sample *src, float threshold)
     {
         lltl::darray<range_t> p_me, n_me, ranges;
         status_t res;
@@ -1360,6 +1400,115 @@ namespace spike_bender
 
             // Flush ranges
             ranges.clear();
+        }
+
+        // Commit the result
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
+    status_t smash_amplitude(dspu::Sample *dst, const dspu::Sample *src, float threshold)
+    {
+        lltl::darray<peak_t> peaks; //, q_peaks;
+        status_t res;
+        dspu::Sample out;
+        peak_t curr;
+
+        if ((res = out.copy(src)) != STATUS_OK)
+            return res;
+        out.set_sample_rate(src->sample_rate());
+
+        size_t step = src->sample_rate() / 100;
+
+        for (size_t i=0, n=src->channels(); i<n; ++i)
+        {
+            // Pass 1: quantize peak values
+            float *in       = out.channel(i);
+            float s_prev    = 0.0f;
+            float ds_prev   = 0.0f;
+            float ds        = 0.0f;
+
+            curr.index      = 0;
+            curr.gain       = -1.0f;
+            peaks.clear();
+
+            for (size_t j=0, m=out.samples(); j<m; ++j)
+            {
+                // Add quantized point
+                if (((j % step) == 0) && (curr.gain > 0.0f))
+                {
+                    if (!peaks.append(&curr))
+                        return STATUS_NO_MEM;
+
+                    curr.index = 0;
+                    curr.gain  = -1.0f;
+                }
+
+                // Find another local peak
+                float s         = in[j];
+                ds              = s - s_prev;
+                if ((ds < 0.0f) && (ds_prev >= 0.0f) && (curr.gain < s))
+                {
+                    curr.index      = j;
+                    curr.gain       = s;
+                }
+
+                ds_prev         = ds;
+                s_prev          = s;
+            }
+
+            // Pass 2: Estimate median values
+            float avg       = 0.0f;
+            if (!median_value(&avg, &peaks))
+                return STATUS_NO_MEM;
+
+            // Pass 3: Find all positive peaks
+            s_prev          = 0.0f;
+            ds_prev         = 0.0f;
+            ds              = 0.0f;
+
+            peaks.clear();
+
+            for (size_t j=0, m=out.samples(); j<m; ++j)
+            {
+                // Find local peak
+                float s         = in[j];
+                ds              = s - s_prev;
+                if ((ds < 0.0f) && (ds_prev >= 0.0f) && (s > 0.0f))
+                {
+                    curr.index      = j;
+                    curr.gain       = s;
+                    if (!peaks.add(&curr))
+                        return STATUS_NO_MEM;
+                }
+
+                ds_prev         = ds;
+                s_prev          = s;
+            }
+
+            // Add last peak at the end of file
+            curr.index      = out.length();
+            curr.gain       = 1.0f;
+            if (!peaks.add(&curr))
+                return STATUS_NO_MEM;
+
+            // Pass 4: Walk through the peaks and tune them. Invert the sign of output signal
+            size_t idx      = 0;
+            float gain      = 1.0f;
+
+            for (size_t j=0, m=peaks.size(); j<m; ++j)
+            {
+                const peak_t *p = peaks.uget(j);
+                float egain     = (p->gain > threshold * avg) ? avg*threshold / p->gain : 1.0f;
+                float delta     = 1.0f / float(p->index - idx);
+
+                for (size_t k=idx; k<p->index; ++k)
+                    in[k]          *= - interpolate(gain, egain, (k - idx) * delta);
+
+                idx             = p->index;
+                gain            = egain;
+            }
         }
 
         // Commit the result

@@ -50,13 +50,14 @@ namespace spike_bender
     static const option_t options[] =
     {
         { "-dr",  "--dynamic-range",        false,     "Dynamic range of the compressor (in dB, 6 dB by default)"                               },
-        { "-ep",  "--eliminate-peaks",      false,     "The threshold above which all peaks are eliminated (in dB, 1 dB by default, off if not positive)"     },
+        { "-ep",  "--eliminate-peaks",      true,      "Enable additional peak elimination algorithm" },
         { "-if",  "--in-file",              false,     "The path to the input file"                                                             },
         { "-k",   "--knee",                 false,     "Knee of the compressor (in dB, 3 dB by default)"                                        },
         { "-n",   "--normalize",            false,     "Set normalization mode (none, above, below, always, none by default)"                   },
         { "-ng",  "--norm-gain",            false,     "Set normalization peak gain (in dB, 0 dB by default)"                                   },
         { "-np",  "--num-passes",           false,     "Number of passes, 1 by default"                                                         },
         { "-of",  "--out-file",             false,     "The path to the output file"                                                            },
+        { "-pt",  "--peak-threshold",       false,     "The threshold of peaks above the median peak value to elminate (in dB, 1 dB by default)"},
         { "-r",   "--reactivity",           false,     "Reactivity of the compressor (in ms, 40 ms by default)"                                 },
         { "-sr",  "--srate",                false,     "Sample rate of output (processed) file, optional"                                       },
         { "-wf",  "--weighting",            false,     "Frequency weighting function (none, a, b, c, d, k, none by default)"                    },
@@ -387,9 +388,13 @@ namespace spike_bender
             if ((res = parse_cmdline_float(&cfg->fNormGain, val, "norm-gain")) != STATUS_OK)
                 return res;
         }
-        if ((val = options.get("--eliminate-peaks")) != NULL)
+        if (options.contains("--eliminate-peaks"))
         {
-            if ((res = parse_cmdline_float(&cfg->fPeakThresh, val, "eliminate-peaks")) != STATUS_OK)
+            cfg->bEliminatePeaks    = true;
+        }
+        if ((val = options.get("--peak-threshold")) != NULL)
+        {
+            if ((res = parse_cmdline_float(&cfg->fPeakThresh, val, "peak-threshold")) != STATUS_OK)
                 return res;
             cfg->fPeakThresh  = dspu::db_to_gain(cfg->fPeakThresh);
         }
