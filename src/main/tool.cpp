@@ -102,13 +102,7 @@ namespace spike_bender
         {
             if ((res = smash_amplitude(&out, &out, cfg.fPeakThresh)) != STATUS_OK)
             {
-                fprintf(stderr, "Error smashing positive amplitude, error code: %d\n", int(res));
-                return res;
-            }
-
-            if ((res = smash_amplitude(&out, &out, cfg.fPeakThresh)) != STATUS_OK)
-            {
-                fprintf(stderr, "Error smashing negative amplitude, error code: %d\n", int(res));
+                fprintf(stderr, "Error smashing amplitude, error code: %d\n", int(res));
                 return res;
             }
         }

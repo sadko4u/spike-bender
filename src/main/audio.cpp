@@ -1408,9 +1408,9 @@ namespace spike_bender
         return STATUS_OK;
     }
 
-    status_t smash_amplitude(dspu::Sample *dst, const dspu::Sample *src, float threshold)
+    status_t smash_amplitude_half(dspu::Sample *dst, const dspu::Sample *src, float threshold)
     {
-        lltl::darray<peak_t> peaks; //, q_peaks;
+        lltl::darray<peak_t> peaks;
         status_t res;
         dspu::Sample out;
         peak_t curr;
@@ -1505,6 +1505,126 @@ namespace spike_bender
 
                 for (size_t k=idx; k<p->index; ++k)
                     in[k]          *= - interpolate(gain, egain, (k - idx) * delta);
+
+                idx             = p->index;
+                gain            = egain;
+            }
+        }
+
+        // Commit the result
+        out.swap(dst);
+
+        return STATUS_OK;
+    }
+
+    status_t smash_amplitude(dspu::Sample *dst, const dspu::Sample *src, float threshold)
+    {
+        lltl::darray<peak_t> peaks, p_peaks, n_peaks;
+        status_t res;
+        dspu::Sample out;
+        peak_t pos, neg, pk;
+
+        if ((res = out.copy(src)) != STATUS_OK)
+            return res;
+        out.set_sample_rate(src->sample_rate());
+
+        size_t step = src->sample_rate() / 100;
+
+        for (size_t i=0, n=src->channels(); i<n; ++i)
+        {
+            // Pass 1: quantize peak values
+            float *in       = out.channel(i);
+
+            pos.index       = 0;
+            pos.gain        = -1.0f;
+            neg.index       = 0;
+            neg.gain        = 1.0f;
+
+            p_peaks.clear();
+            n_peaks.clear();
+            peaks.clear();
+
+            for (size_t j=0, m=out.samples(); j<m; ++j)
+            {
+                // Add quantized point
+                if ((j % step) == 0)
+                {
+                    if (pos.gain >= 0.0f)
+                    {
+                        if (!p_peaks.append(&pos))
+                            return STATUS_NO_MEM;
+                    }
+                    if (neg.gain <= 0.0f)
+                    {
+                        if (!n_peaks.append(&neg))
+                            return STATUS_NO_MEM;
+                    }
+
+                    pos.index       = 0;
+                    pos.gain        = -1.0f;
+                    neg.index       = 0;
+                    neg.gain        = 1.0f;
+                }
+
+                // Find another local peak
+                float s         = in[j];
+                float s_prev    = (j > 0) ? in[j-1] : 0.0f;
+                float s_next    = (j < m) ? in[j+1] : 0.0f;
+                float ds_prev   = s - s_prev;
+                float ds_next   = s_next - s;
+                if ((ds_next < 0.0f) && (ds_prev >= 0.0f) && (s > 0.0f))
+                {
+                    pk.index        = j;
+                    pk.gain         = s;
+                    if (!peaks.add(&pk))
+                        return STATUS_NO_MEM;
+
+                    // We've just passed positive peak at the previous step
+                    if (pos.gain < pk.gain)
+                        pos             = pk;
+                }
+                else if ((ds_next > 0.0f) && (ds_prev <= 0.0f) && (s < 0.0f))
+                {
+                    pk.index        = j;
+                    pk.gain         = s;
+                    if (!peaks.add(&pk))
+                        return STATUS_NO_MEM;
+
+                    // We've just passed negative peak at the previous step
+                    if (neg.gain > pk.gain)
+                        neg             = pk;
+                }
+
+                s_prev          = s;
+            }
+
+            // Pass 2: Estimate median values
+            float p_avg     = 0.0f;
+            float n_avg     = 0.0f;
+            if (!median_value(&p_avg, &p_peaks))
+                return STATUS_NO_MEM;
+            if (!median_value(&n_avg, &n_peaks))
+                return STATUS_NO_MEM;
+
+            // Add last peak at the end of file
+            pk.index        = out.length();
+            pk.gain         = 1.0f;
+            if (!peaks.add(&pk))
+                return STATUS_NO_MEM;
+
+            // Pass 3: Walk through the peaks and tune them. Invert the sign of output signal
+            size_t idx      = 0;
+            float gain      = 1.0f;
+
+            for (size_t j=0, m=peaks.size(); j<m; ++j)
+            {
+                const peak_t *p = peaks.uget(j);
+                float avg       = (p->gain > 0.0f) ? p_avg : n_avg;
+                float egain     = (fabsf(p->gain) > threshold * fabsf(avg)) ? avg*threshold / p->gain : 1.0f;
+                float delta     = 1.0f / float(p->index - idx);
+
+                for (size_t k=idx; k<p->index; ++k)
+                    in[k]          *= interpolate(gain, egain, (k - idx) * delta);
 
                 idx             = p->index;
                 gain            = egain;
