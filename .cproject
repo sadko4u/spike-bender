@@ -63,6 +63,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.284177876.1049218507" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.153726150.1864607704">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.153726150.1864607704" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.153726150">
+							<option id="gnu.cpp.compiler.option.other.other.1582453861" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1982496994" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-dsp-units/src/test/main.cpp|modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -115,6 +121,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.release.173102520.305750653" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.112601161.1533014592">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.112601161.1533014592" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.112601161">
+							<option id="gnu.cpp.compiler.option.other.other.1377770291" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1007683426" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-dsp-units/src/test/main.cpp|modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>

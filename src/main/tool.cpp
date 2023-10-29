@@ -98,7 +98,7 @@ namespace spike_bender
         }
 
         // Smash peaks?
-        if (cfg.fPeakThresh > 1.0f)
+        if (cfg.bEliminatePeaks)
         {
             if ((res = smash_amplitude(&out, &out, cfg.fPeakThresh)) != STATUS_OK)
             {

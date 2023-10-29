@@ -35,7 +35,8 @@ namespace spike_bender
         enWeighting         = NO_WEIGHT;
         enNormalize         = NORM_NONE;
         fNormGain           = 0.0f;
-        fPeakThresh           = dspu::db_to_gain(1.0f);
+        fPeakThresh         = dspu::db_to_gain(1.0f);
+        bEliminatePeaks     = true;
     }
 
     config_t::~config_t()
@@ -53,7 +54,8 @@ namespace spike_bender
         enWeighting         = NO_WEIGHT;
         enNormalize         = NORM_NONE;
         fNormGain           = 0.0f;
-        fPeakThresh           = dspu::db_to_gain(1.0f);
+        fPeakThresh         = dspu::db_to_gain(1.0f);
+        bEliminatePeaks     = true;
 
         sInFile.clear();
         sOutFile.clear();
