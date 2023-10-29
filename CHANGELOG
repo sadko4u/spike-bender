@@ -4,6 +4,7 @@
 
 === 0.1.2 ===
 * Updated peak elimination algorithm.
+* Updated dependencies to core libraries.
 
 === 0.1.1 ===
 * Added peak elimination algorithm.

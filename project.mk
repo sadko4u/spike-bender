@@ -22,4 +22,4 @@
 ARTIFACT_ID                 = SPIKE_BENDER
 ARTIFACT_NAME               = spike-bender
 ARTIFACT_DESC               = Spike Bender - a tool for dynamics correction
-ARTIFACT_VERSION            = 0.1.2-devel
+ARTIFACT_VERSION            = 0.1.2
